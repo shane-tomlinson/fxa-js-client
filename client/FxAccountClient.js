@@ -4,11 +4,12 @@
 define([
   './lib/request',
   'sjcl',
+  './lib/hkdf',
   'p',
   './lib/credentials',
   './lib/hawkCredentials',
   './lib/errors'
-], function (Request, sjcl, P, credentials, hawkCredentials, ERRORS) {
+], function (Request, sjcl, hkdf, P, credentials, hawkCredentials, ERRORS) {
   'use strict';
 
   var VERSION = 'v1';
@@ -483,6 +484,36 @@ define([
           ),
           kA: keys.kA
         };
+      });
+  };
+
+  /**
+   * Derive an application-specific key from an account key.
+   * This securely derives an application-specific key based on the provided
+   * info string and optional salt.  It returns a promise resolving to the
+   * derived key as a base16 string.
+   *
+   * @method generateDerivedKey
+   * @param {String} keyHex
+   * @param {Number} size
+   * @param {String} info
+   * @param {String} saltHex
+   * @return {Promise} A promise that will be fulfilled with JSON of {kA, kB}  of the key bundle
+   */
+  FxAccountClient.prototype.generateDerivedKey = function(keyHex, size, info, saltHex) {
+
+    required(keyHex, 'keyHex');
+    required(size, 'size');
+    required(info, 'info');
+    saltHex = saltHex || '';
+
+    var keyBits = sjcl.codec.hex.toBits(keyHex);
+    var infoBits = sjcl.codec.utf8String.toBits(info);
+    var saltBits = sjcl.codec.hex.toBits(saltHex);
+
+    return hkdf(keyBits, infoBits, saltBits, size)
+      .then(function(out) {
+        return sjcl.codec.hex.fromBits(out);
       });
   };
 

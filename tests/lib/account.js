@@ -70,6 +70,26 @@ define([
           );
       });
 
+      test('#generate derived key', function () {
+
+        var masterKey = '00001111222233334444555566667777';
+        var size = 64;
+        var info = 'identity.mozilla.com/picl/v1/test';
+        var salt = '0000000000000000';
+        var derivedKey = '3bb479991426ddbf560e66fc43cafbd1' +
+                         'b05f9394939a3e6bc1f89ac57b1a059c' +
+                         'beeeea7b84aa1d1f4cf7d57f0cd68cc6' +
+                         '76b869b9653024efc2a044cbe90e1abd';
+
+        return client.generateDerivedKey(masterKey, size, info, salt)
+          .then(
+            function(key) {
+              assert.equal(key, derivedKey);
+            },
+            assert.notOk
+          );
+      });
+
       test('#destroy with incorrect case', function () {
         var account;
 
