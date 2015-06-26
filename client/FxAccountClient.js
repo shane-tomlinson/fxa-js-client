@@ -840,6 +840,76 @@ define([
     });
   };
 
+  /**
+   * Get information about an OAuth client.
+   *
+   * @method getOAuthClientInfo
+   * @param {String} clientId
+   */
+  FxAccountClient.prototype.getOAuthClientInfo = function(clientId) {
+    required(clientId, 'clientId');
+    return this.request.send('/oauth/client/' + clientId, 'GET');
+  };
+
+  /**
+   * Get an OAuth grant code that can be claimed by the given client_id.
+   *
+   * @method getOAuthCode
+   * @param {String} sessionToken sessionToken obtained from signIn
+   * @param {Object} [data={}] Options
+   *   @param {String} [data.client_id]
+   *   The OAuth relier client for whom the token should be generated.
+   *   @param {String} [options.state]
+   *   OAuth state token that should be returned to the relier when claiming the code.
+   *   @param {String} [options.scope]
+   *   Scopes to be included in the OAuth token
+   *   @param {String} [options.redirect_uri]
+   *   Optional URI to which the client should be redirected.
+   * @return {Promise} A promise that will be fulfilled with JSON `xhr.responseText` of the request
+   */
+  FxAccountClient.prototype.getOAuthCode = function(sessionToken, data) {
+    required(sessionToken, 'sessionToken');
+    var self = this;
+    return hawkCredentials(sessionToken, 'sessionToken',  2 * 32)
+      .then(function(creds) {
+        return self.request.send('/oauth/authorization', 'POST', creds, data);
+      });
+  };
+
+  /**
+   * Directly grant an OAuth token usable by the given client_id.
+   *
+   * @method getOAuthToken
+   * @param {String} sessionToken sessionToken obtained from signIn
+   * @param {Object} [data={}] Options
+   *   @param {String} [data.client_id]
+   *   The OAuth relier client for whom the token should be generated.
+   *   @param {String} [options.scope]
+   *   Scopes to be included in the OAuth token
+   * @return {Promise} A promise that will be fulfilled with JSON `xhr.responseText` of the request
+   */
+  FxAccountClient.prototype.getOAuthToken = function(sessionToken, data) {
+    required(sessionToken, 'sessionToken');
+    var self = this;
+    data.response_type = 'token';
+    return hawkCredentials(sessionToken, 'sessionToken',  2 * 32)
+      .then(function(creds) {
+        return self.request.send('/oauth/authorization', 'POST', creds, data);
+      });
+  };
+
+  /**
+   * Destroy a previously-granted OAuth token.
+   *
+   * @method destroyOAuthToken
+   * @param {String} token the oauth token to destroy.
+   * @return {Promise} A promise that will be fulfilled with JSON `xhr.responseText` of the request
+   */
+  FxAccountClient.prototype.destroyOAuthToken = function(token) {
+    required(token, 'token');
+    return this.request.send('/oauth/destroy', 'POST', undefined, { token: token });
+  };
+
   return FxAccountClient;
 });
 
