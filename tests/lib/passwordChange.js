@@ -36,10 +36,11 @@ define([
         var email = user + '@restmail.net';
         var password = 'iliketurtles';
         var newPassword = 'ilikefoxes';
-        var uid;
-        var oldCreds;
         var kB;
         var newUnwrapBKey;
+        var oldCreds;
+        var sessionToken;
+        var uid;
 
         // newUnwrapBKey from email+newpassword. The submitted newWrapKB
         // should equal (kB XOR newUnwrapBKey). This way we don't need to
@@ -67,6 +68,8 @@ define([
             return respond(client.signIn(email, password, {keys: true}), RequestMocks.signInWithKeys);
           })
           .then(function(result) {
+            sessionToken = result.sessionToken;
+
             return respond(client.accountKeys(result.keyFetchToken, result.unwrapBKey), RequestMocks.accountKeys);
           })
           .then(function(keys) {
@@ -82,7 +85,7 @@ define([
           })
           .then(function (keys) {
 
-            return respond(client._passwordChangeFinish(email, newPassword, oldCreds, keys), RequestMocks.passwordChangeFinish);
+            return respond(client._passwordChangeFinish(email, newPassword, oldCreds, keys, sessionToken, { keys: false }), RequestMocks.passwordChangeFinish);
           })
           .then(function (result) {
             // currently only available for mocked requests (issue #103)
@@ -94,7 +97,91 @@ define([
                                 sjcl.codec.hex.toBits(newUnwrapBKey)));
               assert.equal(args.wrapKb, expectedNewWrapKB);
             }
-            assert.ok(result, '{}');
+            assert.property(result, 'sessionToken');
+            assert.notProperty(result, 'keyFetchToken');
+            assert.isTrue(result.verified);
+
+            return respond(client.signIn(email, newPassword), RequestMocks.signIn);
+          })
+          .then(
+            function (res) {
+              assert.property(res, 'sessionToken');
+            },
+            function (err) {
+              throw err;
+            }
+          );
+      });
+
+      test('#keys', function () {
+        var user = 'test7' + new Date().getTime();
+        var email = user + '@restmail.net';
+        var password = 'iliketurtles';
+        var newPassword = 'ilikefoxes';
+        var kB;
+        var newUnwrapBKey;
+        var oldCreds;
+        var sessionToken;
+        var uid;
+
+        // newUnwrapBKey from email+newpassword. The submitted newWrapKB
+        // should equal (kB XOR newUnwrapBKey). This way we don't need to
+        // know what the server will return for wrapKB: handy, since
+        // sometimes we're using a mock (with a fixed response), but
+        // sometimes we're using a real server (which randomly creates
+        // wrapKB)
+
+        return credentials.setup(email, newPassword)
+          .then(function (newCreds) {
+            newUnwrapBKey = sjcl.codec.hex.fromBits(newCreds.unwrapBKey);
+            return respond(client.signUp(email, password), RequestMocks.signUp);
+          })
+          .then(function (result) {
+            uid = result.uid;
+
+            return respond(mail.wait(user), RequestMocks.mail);
+          })
+          .then(function (emails) {
+            var code = emails[0].html.match(/code=([A-Za-z0-9]+)/)[1];
+
+            return respond(client.verifyCode(uid, code), RequestMocks.verifyCode);
+          })
+          .then(function() {
+            return respond(client.signIn(email, password, {keys: true}), RequestMocks.signInWithKeys);
+          })
+          .then(function(result) {
+            sessionToken = result.sessionToken;
+
+            return respond(client.accountKeys(result.keyFetchToken, result.unwrapBKey), RequestMocks.accountKeys);
+          })
+          .then(function(keys) {
+            kB = keys.kB;
+          })
+          .then(function () {
+            return respond(client._passwordChangeStart(email, password), RequestMocks.passwordChangeStart);
+          })
+          .then(function (credentials) {
+            oldCreds = credentials;
+
+            return respond(client._passwordChangeKeys(oldCreds), RequestMocks.accountKeys);
+          })
+          .then(function (keys) {
+
+            return respond(client._passwordChangeFinish(email, newPassword, oldCreds, keys, sessionToken, { keys: true }), RequestMocks.passwordChangeFinishKeys);
+          })
+          .then(function (result) {
+            // currently only available for mocked requests (issue #103)
+            if (requests) {
+              var req = requests[requests.length - 1];
+              var args = JSON.parse(req.requestBody);
+              var expectedNewWrapKB = sjcl.codec.hex.fromBits(
+                credentials.xor(sjcl.codec.hex.toBits(kB),
+                                sjcl.codec.hex.toBits(newUnwrapBKey)));
+              assert.equal(args.wrapKb, expectedNewWrapKB);
+            }
+            assert.property(result, 'sessionToken');
+            assert.property(result, 'keyFetchToken');
+            assert.isTrue(result.verified);
 
             return respond(client.signIn(email, newPassword), RequestMocks.signIn);
           })
@@ -112,11 +199,13 @@ define([
         var newPassword = 'ilikefoxes';
         var account;
         var oldCreds;
+        var sessionToken;
 
         return accountHelper.newVerifiedAccount()
           .then(function (acc) {
             account = acc;
             var incorrectCaseEmail = account.input.email.charAt(0).toUpperCase() + account.input.email.slice(1);
+            sessionToken = account.signUp.sessionToken;
 
             return respond(client._passwordChangeStart(incorrectCaseEmail, account.input.password), RequestMocks.passwordChangeStart);
           })
@@ -128,10 +217,10 @@ define([
           })
           .then(function (keys) {
 
-            return respond(client._passwordChangeFinish(account.input.email, newPassword, oldCreds, keys), RequestMocks.passwordChangeFinish);
+            return respond(client._passwordChangeFinish(account.input.email, newPassword, oldCreds, keys, sessionToken, { keys: false }), RequestMocks.passwordChangeFinish);
           })
           .then(function (result) {
-            assert.ok(result, '{}');
+            assert.property(result, 'sessionToken');
 
             return respond(client.signIn(account.input.email, newPassword), RequestMocks.signIn);
           })
@@ -176,11 +265,14 @@ define([
         var password = 'iliketurtles';
         var newPassword = 'ilikefoxes';
         var wrongPassword = '12345678';
-        var uid;
+
         var oldCreds;
+        var sessionToken;
+        var uid;
 
         return respond(client.signUp(email, password), RequestMocks.signUp)
           .then(function (result) {
+            sessionToken = result.sessionToken;
             uid = result.uid;
 
             return respond(mail.wait(user), RequestMocks.mail);
@@ -200,7 +292,7 @@ define([
           })
           .then(function (keys) {
 
-            return respond(client._passwordChangeFinish(email, newPassword, oldCreds, keys), RequestMocks.passwordChangeFinish);
+            return respond(client._passwordChangeFinish(email, newPassword, oldCreds, keys, sessionToken, { keys: false }), RequestMocks.passwordChangeFinish);
           })
           .then(function (result) {
             assert.ok(result);

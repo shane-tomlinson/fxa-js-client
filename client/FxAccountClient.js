@@ -791,14 +791,20 @@ define([
    * @param {String} email
    * @param {String} oldPassword
    * @param {String} newPassword
+   * @param {String} sessionToken
+   * @param {Object} [options={}] Options
+   *   @param {Boolean} [options.keys]
+   *   If `true`, calls the API with `?keys=true` to get the keyFetchToken
    * @return {Promise} A promise that will be fulfilled with JSON `xhr.responseText` of the request
    */
-  FxAccountClient.prototype.passwordChange = function(email, oldPassword, newPassword) {
+  FxAccountClient.prototype.passwordChange = function(email, oldPassword, newPassword, sessionToken, options) {
     var self = this;
+    options = options || {};
 
     required(email, 'email');
     required(oldPassword, 'old password');
     required(newPassword, 'new password');
+    required(sessionToken, 'sessionToken');
 
     return self._passwordChangeStart(email, oldPassword)
       .then(function (credentials) {
@@ -808,7 +814,7 @@ define([
         return self._passwordChangeKeys(oldCreds)
           .then(function (keys) {
 
-            return self._passwordChangeFinish(email, newPassword, oldCreds, keys);
+            return self._passwordChangeFinish(email, newPassword, oldCreds, keys, sessionToken, options);
           });
       });
 
@@ -889,10 +895,13 @@ define([
    * @param {String} email
    * @param {String} newPassword
    * @param {Object} oldCreds This object should consists of `oldUnwrapBKey`, `keyFetchToken` and `passwordChangeToken`.
-   * @param {Object} keys This object should contain the unbundled keys
+   * @param {Object} [options={}] Options
+   *   @param {Boolean} [options.keys]
+   *   If `true`, calls the API with `?keys=true` to get the keyFetchToken
    * @return {Promise} A promise that will be fulfilled with JSON of `xhr.responseText`
    */
-  FxAccountClient.prototype._passwordChangeFinish = function(email, newPassword, oldCreds, keys) {
+  FxAccountClient.prototype._passwordChangeFinish = function(email, newPassword, oldCreds, keys, sessionToken, options) {
+    options = options || {};
     var self = this;
 
     required(email, 'email');
@@ -900,6 +909,7 @@ define([
     checkCreds(oldCreds);
     required(keys, 'keys');
     required(keys.kB, 'keys.kB');
+    required(sessionToken, 'sessionToken');
 
     var p1 = credentials.setup(email, newPassword);
     var p2 = hawkCredentials(oldCreds.passwordChangeToken, 'passwordChangeToken',  HKDF_SIZE);
@@ -913,9 +923,15 @@ define([
           )
         );
 
-        return self.request.send('/password/change/finish', 'POST', hawkCreds, {
+        var queryParams = '';
+        if (options.keys) {
+          queryParams = '?keys=true';
+        }
+
+        return self.request.send('/password/change/finish' + queryParams, 'POST', hawkCreds, {
           wrapKb: newWrapKb,
-          authPW: sjcl.codec.hex.fromBits(newCreds.authPW)
+          authPW: sjcl.codec.hex.fromBits(newCreds.authPW),
+          sessionToken: sessionToken
         });
       });
   };
