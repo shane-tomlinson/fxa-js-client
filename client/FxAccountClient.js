@@ -895,7 +895,9 @@ define([
    * @param {String} email
    * @param {String} newPassword
    * @param {Object} oldCreds This object should consists of `oldUnwrapBKey`, `keyFetchToken` and `passwordChangeToken`.
+   * @param {Object} keys This object should contain the unbundled keys
    * @param {Object} [options={}] Options
+   * @param {String} sessionToken
    *   @param {Boolean} [options.keys]
    *   If `true`, calls the API with `?keys=true` to get the keyFetchToken
    * @return {Promise} A promise that will be fulfilled with JSON of `xhr.responseText`
