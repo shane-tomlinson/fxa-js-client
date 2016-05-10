@@ -154,11 +154,13 @@ define([
             var newPassword = 'newturles';
             assert.ok(accountResetToken, 'accountResetToken is returned');
 
-            return respond(client.accountReset(email, newPassword, accountResetToken), RequestMocks.accountReset);
+            return respond(client.accountReset(email, newPassword, accountResetToken, { keys: true }), RequestMocks.accountReset);
           })
           .then(
             function (result) {
-              assert.isNotNull(result);
+              assert.ok(result.keyFetchToken);
+              assert.ok(result.sessionToken);
+              assert.ok(result.uid);
             },
             assert.notOk
           );

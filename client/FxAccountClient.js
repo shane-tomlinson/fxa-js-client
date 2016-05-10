@@ -551,6 +551,8 @@ define([
    * @param {String} newPassword
    * @param {String} accountResetToken
    * @param {Object} [options={}] Options
+   *   @param {Boolean} [options.keys]
+   *   If `true`, calls the API with `?keys=true` to get a keyFetchToken
    *   @param {Object} [options.metricsContext={}] Metrics context metadata
    *     @param {String} options.metricsContext.flowId identifier for the current event flow
    *     @param {Number} options.metricsContext.flowBeginTime flow.begin event time
@@ -588,7 +590,12 @@ define([
         }
       ).then(
         function (creds) {
-          return self.request.send('/account/reset', 'POST', creds, data);
+          var queryParams = '';
+          if (options.keys) {
+            queryParams = '?keys=true';
+          }
+
+          return self.request.send('/account/reset' + queryParams, 'POST', creds, data);
         }
       );
   };
