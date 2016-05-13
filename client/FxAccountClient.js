@@ -570,6 +570,7 @@ define([
   FxAccountClient.prototype.accountReset = function(email, newPassword, accountResetToken, options) {
     var self = this;
     var data = {};
+    var unwrapBKey;
 
     options = options || {};
 
@@ -584,6 +585,10 @@ define([
     return credentials.setup(email, newPassword)
       .then(
         function (result) {
+          if (options.keys) {
+            unwrapBKey = sjcl.codec.hex.fromBits(result.unwrapBKey);
+          }
+
           data.authPW = sjcl.codec.hex.fromBits(result.authPW);
 
           return hawkCredentials(accountResetToken, 'accountResetToken',  HKDF_SIZE);
@@ -595,7 +600,17 @@ define([
             queryParams = '?keys=true';
           }
 
-          return self.request.send('/account/reset' + queryParams, 'POST', creds, data);
+          var endpoint = '/account/reset' + queryParams;
+          return self.request.send(endpoint, 'POST', creds, data)
+            .then(
+              function(accountData) {
+                if (options.keys) {
+                  accountData.unwrapBKey = unwrapBKey;
+                }
+
+                return accountData;
+              }
+            );
         }
       );
   };

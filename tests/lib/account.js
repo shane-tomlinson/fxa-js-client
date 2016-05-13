@@ -160,6 +160,7 @@ define([
             function (result) {
               assert.ok(result.keyFetchToken);
               assert.ok(result.sessionToken);
+              assert.ok(result.unwrapBKey);
               assert.ok(result.uid);
             },
             assert.notOk
