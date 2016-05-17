@@ -39,7 +39,6 @@ define([
         var kB;
         var newUnwrapBKey;
         var oldCreds;
-        var sessionToken;
         var uid;
 
         // newUnwrapBKey from email+newpassword. The submitted newWrapKB
@@ -68,8 +67,6 @@ define([
             return respond(client.signIn(email, password, {keys: true}), RequestMocks.signInWithKeys);
           })
           .then(function(result) {
-            sessionToken = result.sessionToken;
-
             return respond(client.accountKeys(result.keyFetchToken, result.unwrapBKey), RequestMocks.accountKeys);
           })
           .then(function(keys) {
@@ -85,7 +82,7 @@ define([
           })
           .then(function (keys) {
 
-            return respond(client._passwordChangeFinish(email, newPassword, oldCreds, keys, sessionToken, { keys: false }), RequestMocks.passwordChangeFinish);
+            return respond(client._passwordChangeFinish(email, newPassword, oldCreds, keys, { keys: false }), RequestMocks.passwordChangeFinish);
           })
           .then(function (result) {
             // currently only available for mocked requests (issue #103)
@@ -97,9 +94,7 @@ define([
                                 sjcl.codec.hex.toBits(newUnwrapBKey)));
               assert.equal(args.wrapKb, expectedNewWrapKB);
             }
-            assert.property(result, 'sessionToken');
             assert.notProperty(result, 'keyFetchToken');
-            assert.isTrue(result.verified);
 
             return respond(client.signIn(email, newPassword), RequestMocks.signIn);
           })
@@ -167,7 +162,7 @@ define([
           })
           .then(function (keys) {
 
-            return respond(client._passwordChangeFinish(email, newPassword, oldCreds, keys, sessionToken, { keys: true }), RequestMocks.passwordChangeFinishKeys);
+            return respond(client._passwordChangeFinish(email, newPassword, oldCreds, keys, { keys: true, sessionToken: sessionToken }), RequestMocks.passwordChangeFinishKeys);
           })
           .then(function (result) {
             // currently only available for mocked requests (issue #103)
@@ -199,13 +194,11 @@ define([
         var newPassword = 'ilikefoxes';
         var account;
         var oldCreds;
-        var sessionToken;
 
         return accountHelper.newVerifiedAccount()
           .then(function (acc) {
             account = acc;
             var incorrectCaseEmail = account.input.email.charAt(0).toUpperCase() + account.input.email.slice(1);
-            sessionToken = account.signUp.sessionToken;
 
             return respond(client._passwordChangeStart(incorrectCaseEmail, account.input.password), RequestMocks.passwordChangeStart);
           })
@@ -217,10 +210,10 @@ define([
           })
           .then(function (keys) {
 
-            return respond(client._passwordChangeFinish(account.input.email, newPassword, oldCreds, keys, sessionToken, { keys: false }), RequestMocks.passwordChangeFinish);
+            return respond(client._passwordChangeFinish(account.input.email, newPassword, oldCreds, keys), RequestMocks.passwordChangeFinish);
           })
           .then(function (result) {
-            assert.property(result, 'sessionToken');
+            assert.ok(result, '{}');
 
             return respond(client.signIn(account.input.email, newPassword), RequestMocks.signIn);
           })
@@ -265,14 +258,11 @@ define([
         var password = 'iliketurtles';
         var newPassword = 'ilikefoxes';
         var wrongPassword = '12345678';
-
-        var oldCreds;
-        var sessionToken;
         var uid;
+        var oldCreds;
 
         return respond(client.signUp(email, password), RequestMocks.signUp)
           .then(function (result) {
-            sessionToken = result.sessionToken;
             uid = result.uid;
 
             return respond(mail.wait(user), RequestMocks.mail);
@@ -292,7 +282,7 @@ define([
           })
           .then(function (keys) {
 
-            return respond(client._passwordChangeFinish(email, newPassword, oldCreds, keys, sessionToken, { keys: false }), RequestMocks.passwordChangeFinish);
+            return respond(client._passwordChangeFinish(email, newPassword, oldCreds, keys), RequestMocks.passwordChangeFinish);
           })
           .then(function (result) {
             assert.ok(result);

@@ -196,7 +196,7 @@ define([
     },
     passwordChangeFinish: {
       status: 200,
-      body: '{"uid": "5d576e2cd3604981a8c05f6ea67fce5b", "sessionToken": "9c1fe2a0643ce23aa1b44afbe30e28d33e5726558cab215314980fc85875684f","verified": true}'
+      body: '{}'
     },
     passwordChangeFinishKeys: {
       status: 200,
