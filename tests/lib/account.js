@@ -154,7 +154,7 @@ define([
             var newPassword = 'newturles';
             assert.ok(accountResetToken, 'accountResetToken is returned');
 
-            return respond(client.accountReset(email, newPassword, accountResetToken, { keys: true }), RequestMocks.accountReset);
+            return respond(client.accountReset(email, newPassword, accountResetToken, { keys: true, sessionToken: true }), RequestMocks.accountReset);
           })
           .then(
             function (result) {

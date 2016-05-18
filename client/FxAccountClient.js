@@ -552,7 +552,9 @@ define([
    * @param {String} accountResetToken
    * @param {Object} [options={}] Options
    *   @param {Boolean} [options.keys]
-   *   If `true`, calls the API with `?keys=true` to get a keyFetchToken
+   *   If `true`, a new `keyFetchToken` is provisioned.
+   *   @param {Boolean} [options.sessionToken]
+   *   If `true`, a new `sessionToken` is provisioned.
    *   @param {Object} [options.metricsContext={}] Metrics context metadata
    *     @param {String} options.metricsContext.flowId identifier for the current event flow
    *     @param {Number} options.metricsContext.flowBeginTime flow.begin event time
@@ -576,6 +578,10 @@ define([
 
     if (options.metricsContext) {
       data.metricsContext = metricsContext.marshall(options.metricsContext);
+    }
+
+    if (options.sessionToken) {
+      data.sessionToken = options.sessionToken;
     }
 
     required(email, 'email');
