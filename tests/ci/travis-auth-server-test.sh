@@ -2,7 +2,7 @@
 
 # Install and start the auth server
 git clone https://github.com/mozilla/fxa-auth-server.git
-cd fxa-auth-server && npm i
+cd fxa-auth-server && git checkout verify-token-full && npm i
 npm start &
 cd ..
 sleep 5
